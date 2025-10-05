@@ -1,0 +1,11 @@
+Pillow==11.3.0
+fastNLP==0.7.0
+torch==2.4.1
+peft==0.17.1
+transformers==4.56.1
+pandas==2.3.2
+datasets==4.0.0
+termcolor
+tqdm
+protobuf
+sentencepiece
