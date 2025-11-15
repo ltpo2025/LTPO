@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument("--output_dir", type=str, help="Path to the output directory")
     parser.add_argument("--start_data_idx", type=int, default=0, help="Start index of the data to evaluate")
     parser.add_argument("--end_data_idx", type=int, default=1319, help="End index of the data to evaluate")
-    parser.add_argument("--max_new_tokens", type=int, default=1024, help="Number of generated tokens")
+    parser.add_argument("--max_new_tokens", type=int, default=4096, help="Number of generated tokens")
     parser.add_argument("--device", type=str, default="cuda")
 
     # prompt

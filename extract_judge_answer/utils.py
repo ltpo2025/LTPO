@@ -4,6 +4,8 @@ from math_verify import parse, verify
 from .grader import math_equal_process
 from .math_equivalent_MATH import is_equiv
 from .parse_utils_qwen import extract_answer as extract_fn
+
+
 def extract_true_answer(text, name="gsm8k"):
     '''
     Extract answer from text
@@ -24,6 +26,10 @@ def extract_true_answer(text, name="gsm8k"):
     elif "math-500" in name.lower():
         return text
     elif "aime" in name.lower():
+        return text
+    elif "strategyqa" in name.lower():
+        return text
+    elif "date_understanding" in name.lower():
         return text
     elif "cruxeval" in name:
         return text
@@ -83,7 +89,21 @@ def judge_answer(input, label, data_name="gsm8k", extract=True, prompt_idx=0):
             input = str(input)
             label = str(label)
         return (input == label)
-    
+
+    elif "strategyqa" in data_name.lower():
+        if extract:
+            input = extract_answer(input, data_name="strategyqa", prompt_idx=prompt_idx)
+            input = str(input).lower().strip()
+            label = str(label).lower().strip()
+        return (input == label)
+
+    elif "date_understanding" in data_name.lower():
+        if extract:
+            input = extract_answer(input, data_name="date_understanding", prompt_idx=prompt_idx)
+            input = str(input).lower().strip()
+            label = str(label).lower().strip()
+        return (input == label)
+
     elif "cruxeval" in data_name.lower():
         if extract:
             input = extract_answer(input, data_name="cruxeval", prompt_idx=prompt_idx)
@@ -138,7 +158,6 @@ def extract_answer(text, data_name="gsm8k", prompt_idx=0, model_name="Qwen2.5-7B
                 else:
                     temp = _extract_answer(text)
                     return temp
-
 
         else:
             raise ValueError(f"Unknown prompt index: {prompt_idx} for extract answer")
@@ -205,12 +224,110 @@ def extract_answer(text, data_name="gsm8k", prompt_idx=0, model_name="Qwen2.5-7B
                     temp = _extract_answer(text)
                     return temp
 
+        else:
+            raise ValueError(f"Unknown prompt index: {prompt_idx} for extract answer")
+
+    elif "date_understanding" in data_name.lower():
+        if prompt_idx == 0 or prompt_idx == 2:
+            # 0: boxed
+            temp = _extract_option_answer(text)
+            return temp
+
+        elif prompt_idx == 1:
+            # 1: json, {"final answer": ...}
+            try:
+                answer = json.loads(text.strip('` \n'))
+                final_answer = answer.get('final answer', '')
+                if not isinstance(final_answer, str):
+                    final_answer = str(final_answer)
+                temp = _extract_option_answer(final_answer)
+                return temp
+
+            except json.JSONDecodeError:
+                pattern = r'(?:final answer|my answer)"?:?\s*(.*?)[}<]'
+
+                match = re.search(pattern, text, flags=re.I | re.M | re.DOTALL)
+                if match:
+                    temp = _extract_option_answer(match.group(1))
+                    return temp
+                else:
+                    temp = _extract_option_answer(text)
+                    return temp
+
+    elif "strategyqa" in data_name.lower():
+        if prompt_idx == 0 or prompt_idx == 2:
+            # 0: boxed
+            temp = _extract_bool_answer(text)
+            return temp
+
+        elif prompt_idx == 1:
+            # 1: json, {"final answer": ...}
+            try:
+                answer = json.loads(text.strip('` \n'))
+                final_answer = answer.get('final answer', '')
+                if not isinstance(final_answer, str):
+                    final_answer = str(final_answer)
+                temp = _extract_bool_answer(final_answer)
+                return temp
+
+            except json.JSONDecodeError:
+                pattern = r'(?:final answer|my answer)"?:?\s*(.*?)[}<]'
+
+                match = re.search(pattern, text, flags=re.I | re.M | re.DOTALL)
+                if match:
+                    temp = _extract_bool_answer(match.group(1))
+                    return temp
+                else:
+                    temp = _extract_bool_answer(text)
+                    return temp
 
         else:
             raise ValueError(f"Unknown prompt index: {prompt_idx} for extract answer")
+
     else:
         raise ValueError(f"Unknown dataset name: {data_name} for extract answer")
 
+
+def _extract_bool_answer(text: str) -> bool | None:
+    last_yes = re.search(r'\bsey\b', text.lower()[::-1])
+    if last_yes is not None:
+        last_yes = last_yes.start()
+    else:
+        last_yes = len(text)
+    last_no = re.search(r'\bon\b', text.lower()[::-1])
+    if last_no is not None:
+        last_no = last_no.start()
+    else:
+        last_no = len(text)
+    if last_yes == last_no == len(text):
+        return None
+    return last_yes < last_no
+
+def _extract_option_answer(text: str) -> str | None:
+    def clean_option(opt_str):
+        match = re.search(r'[a-f]', opt_str.lower()[::-1])
+        return match.group(0).upper() if match else None
+
+    ### Several Corner Cases ###
+    # 1. \boxed{}
+    boxed_pattern = r"\\boxed\{\s*(.*)\s*\}"
+    all_matches = list(re.finditer(boxed_pattern, text, re.IGNORECASE))
+    if all_matches:
+        return clean_option(all_matches[-1].group(1))
+
+    # 2. he answer is
+    answer_pattern = r"he answer is\s*(.*)"
+    all_matches = list(re.finditer(boxed_pattern, text, re.IGNORECASE))
+    if all_matches:
+        return clean_option(all_matches[-1].group(1))
+
+    # 3. final answer is
+    answer_pattern = r"final answer is\s*(.*)"
+    all_matches = list(re.finditer(boxed_pattern, text, re.IGNORECASE))
+    if all_matches:
+        return clean_option(all_matches[-1].group(1))
+
+    return None
 
 
 ######################

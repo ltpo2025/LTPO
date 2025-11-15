@@ -28,23 +28,51 @@ def build_inputs(
         raise ValueError(f"Unsupported model: {model_name}")
     problem_type = 'code reasoning' if 'cruxeval' in data_name else 'math'
 
-    input_content = (
-        f'Solve the following {problem_type} problem efficiently and clearly:\n'
-        f'- For simple problems (2 steps or fewer):\n'
-        f'Provide a concise solution with minimal description.\n'
-        f'- For complex problems (3 steps or more):\n'
-        f'Use this step-by-step format:\n\n'
-        f'## Step 1: [Brief calculations]\n'
-        f'## Step 2: [Brief calculations]\n'
-        f'...\n'
-        f'IMPORTANT: Regardless of the approach, you MUST always put your final answer within \\boxed{{}}.\n\n'
-        f'PROBLEM: {prompt}\n\n'
-        f'There are {num_thought_tokens} special tokens that contain compressed latent reasoning information '
-        f'that might be useful for your reasoning.\n'
-        f'If these tokens are useful for your case, you can use them as reference. If these tokens are not useful '
-        f'for your case, you can ignore them and focus back to solving the problem.\n\n'
-        f'Here are the {num_thought_tokens} special tokens: {latent_thought_tokens}'
-    )
+    if 'strategyqa' in data_name.lower():
+        input_content = (
+            f'Solve the following reasoning problem step by step.\n'
+            f'You are required to answer the question with `Yes` or `No`.\n'
+            f'PROBLEM: {prompt}\n\n'
+            f'There are {num_thought_tokens} special tokens that contain compressed latent reasoning information '
+            f'that might be useful for your reasoning.\n'
+            f'If these tokens are useful for your case, you can use them as reference. If these tokens are not useful '
+            f'for your case, you can ignore them and focus back to solving the problem.\n\n'
+            f'Here are the {num_thought_tokens} special tokens: {latent_thought_tokens}'
+        )
+    elif 'date_understanding' in data_name.lower():
+        input_content = (
+            f'Solve the following multiple choices problem step by step.\n'
+            f'In the multiple choices problem, there are five options: A, B, C, D, E, and F, respectively.\n'
+            f'The correct answer that solves the problem is one of these options.\n'
+            f'Your job is to solve the problem and find the correct option.\n'
+            f'IMPORTANT: you MUST always put your final answer within \\boxed{{answer}}, '
+            f'where [answer] is the option from A, B, C, D, E, and F. '
+            f'Only one letter from A to F is accepted in the answer span.\n\n'
+            f'PROBLEM: {prompt}\n\n'
+            f'There are {num_thought_tokens} special tokens that contain compressed latent reasoning information '
+            f'that might be useful for your reasoning.\n'
+            f'If these tokens are useful for your case, you can use them as reference. If these tokens are not useful '
+            f'for your case, you can ignore them and focus back to solving the problem.\n\n'
+            f'Here are the {num_thought_tokens} special tokens: {latent_thought_tokens}'
+        )
+    else:
+        input_content = (
+            f'Solve the following {problem_type} problem efficiently and clearly:\n'
+            f'- For simple problems (2 steps or fewer):\n'
+            f'Provide a concise solution with minimal description.\n'
+            f'- For complex problems (3 steps or more):\n'
+            f'Use this step-by-step format:\n\n'
+            f'## Step 1: [Brief calculations]\n'
+            f'## Step 2: [Brief calculations]\n'
+            f'...\n'
+            f'IMPORTANT: Regardless of the approach, you MUST always put your final answer within \\boxed{{}}.\n\n'
+            f'PROBLEM: {prompt}\n\n'
+            f'There are {num_thought_tokens} special tokens that contain compressed latent reasoning information '
+            f'that might be useful for your reasoning.\n'
+            f'If these tokens are useful for your case, you can use them as reference. If these tokens are not useful '
+            f'for your case, you can ignore them and focus back to solving the problem.\n\n'
+            f'Here are the {num_thought_tokens} special tokens: {latent_thought_tokens}'
+        )
 
     input_messages = [{'role': 'user', 'content': input_content}]
     inputs = tokenizer.apply_chat_template(
